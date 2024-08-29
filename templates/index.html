@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pixel Art Generator</title>
+    <style>
+        #canvas {
+            border: 1px solid black;
+            cursor: crosshair; 
+        }
+
+        .controls {
+            margin-top: 10px;
+        }
+
+        .tools {
+            margin-top: 10px;
+        }
+
+        .tool-button {
+            padding: 5px 10px;
+            margin: 0 5px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+
+        .tool-button.active {
+            background-color: #eee;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pixel Art Generator</h1>
+
+    <canvas id="canvas" width="300" height="300"></canvas>
+
+    <div class="controls">
+        <label for="colorPicker">Color:</label>
+        <input type="color" id="colorPicker" value="#000000">
+
+        <label for="brushSize">Brush Size:</label>
+        <select id="brushSize">
+            <option value="1">1</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+        </select>
+    </div>
+
+    <div class="tools">
+        <button class="tool-button active" data-tool="pencil">Pencil</button>
+        <button class="tool-button" data-tool="eraser">Eraser</button>
+        <button class="tool-button" data-tool="rectangle">Rectangle</button>
+        <button class="tool-button" data-tool="circle">Circle</button>
+        <button class="tool-button" data-tool="fill">Fill</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        const brushSizeSelect = document.getElementById('brushSize');
+        const toolButtons = document.querySelectorAll('.tool-button');
+
+        let isDrawing = false;
+        let startX, startY;
+        let currentColor = colorPicker.value;
+        let currentBrushSize = parseInt(brushSizeSelect.value);
+        let currentTool = 'pencil';
+
+        // Event listeners
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        colorPicker.addEventListener('change', () => {
+            currentColor = colorPicker.value;
+        });
+        brushSizeSelect.addEventListener('change', () => {
+            currentBrushSize = parseInt(brushSizeSelect.value);
+        });
+        toolButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                toolButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                currentTool = button.dataset.tool;
+            });
+        });
+
+        function startDrawing(e) {
+            isDrawing = true;
+            startX = e.clientX - canvas.getBoundingClientRect().left;
+            startY = e.clientY - canvas.getBoundingClientRect().top;
+
+            if (currentTool === 'fill') {
+                floodFill(startX, startY, currentColor);
+            }
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const x = e.clientX - canvas.getBoundingClientRect().left;
+            const y = e.clientY - canvas.getBoundingClientRect().top;
+
+            if (currentTool === 'pencil' || currentTool === 'eraser') {
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = currentTool === 'pencil' ? currentColor : 'lightgray'; // Eraser uses lightgray
+                ctx.lineWidth = currentBrushSize;
+                ctx.stroke();
+                startX = x;
+                startY = y;
+            } else if (currentTool === 'rectangle' || currentTool === 'circle') {
+                // Redraw the canvas to remove previous shape previews
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(originalImageData, 0, 0); 
+
+                const width = x - startX;
+                const height = y - startY;
+
+                ctx.beginPath();
+                if (currentTool === 'rectangle') {
+                    ctx.rect(startX, startY, width, height);
+                } else {
+                    const radius = Math.sqrt(width * width + height * height) / 2;
+                    ctx.arc(startX + width / 2, startY + height / 2, radius, 0, 2 * Math.PI);
+                }
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = currentBrushSize;
+                ctx.stroke();
+            }
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+
+            if (currentTool === 'rectangle' || currentTool === 'circle') {
+                // Draw the final shape on the original image data
+                ctx.drawImage(originalImageData, 0, 0); 
+                draw(e); // Redraw the shape one last time to finalize it
+                originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        // Flood fill algorithm (simplified version)
+        function floodFill(x, y, fillColor) {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixelStack = [[x, y]];
+            const startColor = getColorAtPixel(imageData, x, y);
+
+            if (startColor === fillColor) return; // Avoid infinite loop
+
+            while (pixelStack.length) {
+                const [currentX, currentY] = pixelStack.pop();
+                const currentColor = getColorAtPixel(imageData, currentX, currentY);
+
+                if (currentColor !== startColor) continue;
+
+                setColorAtPixel(imageData, currentX, currentY, fillColor);
+                pushIfValid(pixelStack, currentX + 1, currentY);
+                pushIfValid(pixelStack, currentX - 1, currentY);
+                pushIfValid(pixelStack, currentX, currentY + 1);
+                pushIfValid(pixelStack, currentX, currentY - 1);
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function getColorAtPixel(imageData, x, y) {
+            const index = (y * imageData.width + x) * 4;
+            return rgbToHex(
+                imageData.data[index],
+                imageData.data[index + 1],
+                imageData.data[index + 2]
+            );
+        }
+
+        function setColorAtPixel(imageData, x, y, color) {
+            const index = (y * imageData.width + x) * 4;
+            const [r, g, b] = hexToRgb(color);
+            imageData.data[index] = r;
+            imageData.data[index + 1] = g;
+            imageData.data[index + 2] = b;
+            imageData.data[index + 3] = 255; // Alpha (opacity)
+        }
+
+        function pushIfValid(stack, x, y) {
+            if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
+                stack.push([x, y]);
+            }
+        }
+
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? [
+                parseInt(result[1], 16),
+                parseInt(result[2], [3], 16)
+            ] : null;
+        }
+
+        // Store the original image data for shape previews
+        let originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        // Initial canvas setup 
+        ctx.fillStyle = 'lightgray';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    </script>
+</body>
+</html>

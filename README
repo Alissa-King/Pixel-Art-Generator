@@ -1,14 +1,18 @@
 # Pixel Art Generator
 
-This project aims to create a simple and user-friendly pixel art generator that allows users to convert images into pixelated versions or create pixel art from scratch.
+This project is a web-based pixel art editor that allows you to create pixel art from scratch or convert images into pixelated versions. It provides a variety of drawing tools, shapes, and color options to unleash your creativity.
 
 ## Features
 
-* **Image Conversion:** Upload an image and convert it into pixel art with adjustable pixel size.
-* **Color Palette:** Choose from a set of predefined color palettes or create your own.
-* **Drawing Tools:** Basic drawing tools like pencil, eraser, and fill bucket for creating pixel art from scratch.
-* **Grid:** Display a customizable grid to help with pixel placement and alignment.
-* **Export:** Save your pixel art creations in various formats (e.g., PNG, GIF).
+* **Drawing Tools:**
+    * Pencil: Draw freehand with adjustable brush size.
+    * Eraser: Erase pixels with adjustable brush size.
+    * Fill: Fill enclosed areas with a selected color.
+* **Shape Tools:**
+    * Rectangle: Draw rectangles with adjustable stroke width.
+    * Circle: Draw circles with adjustable stroke width.
+* **Color Picker:** Choose from a wide range of colors using the color picker.
+* **Undo/Redo:** Undo and redo your actions to easily correct mistakes or experiment with different ideas.
 
 ## Getting Started
 
